@@ -56,12 +56,39 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
       'en-US',
       { month: 'long', day: 'numeric', hour: 'numeric', timeZone: timeZone }
     );
-
     // Check the availibility of the time, and make an appointment if there is time on the calendar
     return createCalendarEvent(dateTimeStart, dateTimeEnd).then(() => {
-      agent.add(`Ok, let me see if we can fit you in. ${appointmentTimeString} is fine!. Do you need a repair or just a tune-up?`);
+      agent.add(`Ok, let me see if we can fit you in. ${appointmentTimeString} is fine!. For how many people do you need the table?`);
     }).catch(() => {
       agent.add(`I'm sorry, there are no tables available for ${appointmentTimeString}.`);
+    });
+  }
+  
+  function createCalendarEvent (dateTimeStart, dateTimeEnd) {
+    const persons = new Number(agent.parameters.number);
+    return new Promise((resolve, reject) => {
+      calendar.events.list({
+        auth: serviceAccountAuth, // List events for time period
+        calendarId: calendarId,
+        timeMin: dateTimeStart.toISOString(),
+        timeMax: dateTimeEnd.toISOString()
+      }, (err, calendarResponse) => { 
+        // Check if there is a event already on the Bike Shop Calendar
+        if (err || calendarResponse.data.items.length > 0) {
+          reject(err || new Error('Requested time conflicts with another appointment'));
+        } else {
+          // Create event for the requested time period
+          calendar.events.insert({ auth: serviceAccountAuth,
+            calendarId: calendarId,
+            resource: {summary: `Table Appointment for ${persons}`,
+              start: {dateTime: dateTimeStart},
+              end: {dateTime: dateTimeEnd}}
+          }, (err, event) => {
+            err ? reject(err) : resolve(event);
+          }
+          );
+        }
+      });
     });
   }
 
@@ -78,34 +105,9 @@ function currentlyOpen () {
   date.setMinutes(date.getMinutes() + parseInt(timezoneOffset.split(':')[0][0] + timezoneOffset.split(':')[1]));
 
   return date.getDay() >= 1 &&
-        date.getDay() <= 5 &&
-        date.getHours() >= 9 &&
-        date.getHours() <= 17;
+        date.getDay() <= 6 &&
+        date.getHours() >= 10 &&
+        date.getHours() <= 23; 
 }
 
-function createCalendarEvent (dateTimeStart, dateTimeEnd) {
-  return new Promise((resolve, reject) => {
-    calendar.events.list({
-      auth: serviceAccountAuth, // List events for time period
-      calendarId: calendarId,
-      timeMin: dateTimeStart.toISOString(),
-      timeMax: dateTimeEnd.toISOString()
-    }, (err, calendarResponse) => { 
-      // Check if there is a event already on the Bike Shop Calendar
-      if (err || calendarResponse.data.items.length > 0) {
-        reject(err || new Error('Requested time conflicts with another appointment'));
-      } else {
-        // Create event for the requested time period
-        calendar.events.insert({ auth: serviceAccountAuth,
-          calendarId: calendarId,
-          resource: {summary: 'Table Appointment',
-            start: {dateTime: dateTimeStart},
-            end: {dateTime: dateTimeEnd}}
-        }, (err, event) => {
-          err ? reject(err) : resolve(event);
-        }
-        );
-      }
-    });
-  });
-}
+
