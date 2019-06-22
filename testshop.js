@@ -80,7 +80,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
           // Create event for the requested time period
           calendar.events.insert({ auth: serviceAccountAuth,
             calendarId: calendarId,
-            resource: {summary: `Table Appointment for ${persons}`,
+            resource: {summary: `Table Appointment for ${persons} persons.`,
               start: {dateTime: dateTimeStart},
               end: {dateTime: dateTimeEnd}}
           }, (err, event) => {
