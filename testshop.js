@@ -35,7 +35,7 @@ const calendar = google.calendar('v3');
 process.env.DEBUG = 'dialogflow:*'; // enables lib debugging statements
 
 const timeZone = 'Europe/Berlin';
-const timezoneOffSet = '+02:00';
+const timezoneOffset = '+02:00';
 
 exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, response) => {
   const agent = new WebhookClient({ request, response });
@@ -50,7 +50,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
   function makeAppointment (agent) {
     // Calculate appointment start and end datetimes (end = +1hr from start)
-    const dateTimeStart = new Date(Date.parse(agent.parameters.date.split('T')[0] + 'T' + agent.parameters.time.split('T')[1].split('+')[0] + timezoneOffSet));
+    const dateTimeStart = new Date(Date.parse(agent.parameters.date.split('T')[0] + 'T' + agent.parameters.time.split('T')[1].split('+')[0] + timezoneOffset));
     const dateTimeEnd = new Date(new Date(dateTimeStart).setHours(dateTimeStart.getHours() + 1));
     const appointmentTimeString = dateTimeStart.toLocaleString(
       'en-US',
@@ -61,7 +61,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     return createCalendarEvent(dateTimeStart, dateTimeEnd).then(() => {
       agent.add(`Ok, let me see if we can fit you in. ${appointmentTimeString} is fine!. Do you need a repair or just a tune-up?`);
     }).catch(() => {
-      agent.add(`I'm sorry, there are no slots available for ${appointmentTimeString}.`);
+      agent.add(`I'm sorry, there are no tables available for ${appointmentTimeString}.`);
     });
   }
 
@@ -74,8 +74,8 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 function currentlyOpen () {
   // Get current datetime with proper timezone
   let date = new Date();
-  date.setHours(date.getHours() + parseInt(timeZoneOffset.split(':')[0]));
-  date.setMinutes(date.getMinutes() + parseInt(timeZoneOffset.split(':')[0][0] + timeZoneOffset.split(':')[1]));
+  date.setHours(date.getHours() + parseInt(timezoneOffset.split(':')[0]));
+  date.setMinutes(date.getMinutes() + parseInt(timezoneOffset.split(':')[0][0] + timezoneOffset.split(':')[1]));
 
   return date.getDay() >= 1 &&
         date.getDay() <= 5 &&
@@ -90,7 +90,7 @@ function createCalendarEvent (dateTimeStart, dateTimeEnd) {
       calendarId: calendarId,
       timeMin: dateTimeStart.toISOString(),
       timeMax: dateTimeEnd.toISOString()
-    }, (err, calendarResponse) => {
+    }, (err, calendarResponse) => { 
       // Check if there is a event already on the Bike Shop Calendar
       if (err || calendarResponse.data.items.length > 0) {
         reject(err || new Error('Requested time conflicts with another appointment'));
@@ -98,7 +98,7 @@ function createCalendarEvent (dateTimeStart, dateTimeEnd) {
         // Create event for the requested time period
         calendar.events.insert({ auth: serviceAccountAuth,
           calendarId: calendarId,
-          resource: {summary: 'Bike Appointment',
+          resource: {summary: 'Table Appointment',
             start: {dateTime: dateTimeStart},
             end: {dateTime: dateTimeEnd}}
         }, (err, event) => {
