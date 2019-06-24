@@ -52,20 +52,21 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     // Calculate appointment start and end datetimes (end = +1hr from start)
     const dateTimeStart = new Date(Date.parse(agent.parameters.date.split('T')[0] + 'T' + agent.parameters.time.split('T')[1].split('+')[0] + timezoneOffset));
     const dateTimeEnd = new Date(new Date(dateTimeStart).setHours(dateTimeStart.getHours() + 1));
+    const persons = Number(agent.parameters.number);
+    const name = String(agent.parameters.namelist)
     const appointmentTimeString = dateTimeStart.toLocaleString(
       'en-US',
       { month: 'long', day: 'numeric', hour: 'numeric', timeZone: timeZone }
     );
     // Check the availibility of the time, and make an appointment if there is time on the calendar
-    return createCalendarEvent(dateTimeStart, dateTimeEnd).then(() => {
-      agent.add(`Ok, let me see if we can fit you in. ${appointmentTimeString} is fine!. For how many people do you need the table?`);
+    return createCalendarEvent(dateTimeStart, dateTimeEnd, persons, name).then(() => {
+      agent.add(`Ok, let me see if we can fit you in. ${appointmentTimeString} is fine! We book your table for ${persons}.`);
     }).catch(() => {
       agent.add(`I'm sorry, there are no tables available for ${appointmentTimeString}.`);
     });
   }
   
-  function createCalendarEvent (dateTimeStart, dateTimeEnd) {
-    const persons = new Number(agent.parameters.number);
+  function createCalendarEvent (dateTimeStart, dateTimeEnd, persons, name) {
     return new Promise((resolve, reject) => {
       calendar.events.list({
         auth: serviceAccountAuth, // List events for time period
@@ -73,16 +74,18 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
         timeMin: dateTimeStart.toISOString(),
         timeMax: dateTimeEnd.toISOString()
       }, (err, calendarResponse) => { 
-        // Check if there is a event already on the Bike Shop Calendar
+        // Check if there is a event already on the Google Calendar
         if (err || calendarResponse.data.items.length > 0) {
           reject(err || new Error('Requested time conflicts with another appointment'));
         } else {
           // Create event for the requested time period
           calendar.events.insert({ auth: serviceAccountAuth,
             calendarId: calendarId,
-            resource: {summary: `Table Appointment for ${persons} persons.`,
+            resource: {summary: `Table Appointment for ${persons} persons`,
               start: {dateTime: dateTimeStart},
-              end: {dateTime: dateTimeEnd}}
+              end: {dateTime: dateTimeEnd},
+              description: `Mrs./Mr. ${name} has reserved a table for ${persons}.`
+            }
           }, (err, event) => {
             err ? reject(err) : resolve(event);
           }
