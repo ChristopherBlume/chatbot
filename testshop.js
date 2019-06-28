@@ -4,13 +4,13 @@ Github: https://github.com/ChristopherBlume
 */
 
 'use strict';
-
+// imports of firebase functions, googleapi and dialogflow-fulfillmet
 const functions = require('firebase-functions');
 const {google} = require('googleapis');
 const {WebhookClient} = require('dialogflow-fulfillment');
 
-// Enter your calendar ID below and service account JSON below, see https://github.com/dialogflow/bike-shop/blob/master/README.md#calendar-setup
-const calendarId = 'k0j9hmt1hlgpur9biknvomgngk@group.calendar.google.com'; // looks like "6ujc6j6rgfk02cp02vg6h38cs0@group.calendar.google.com"
+// Google calendar ID and service account JSON 
+const calendarId = 'k0j9hmt1hlgpur9biknvomgngk@group.calendar.google.com';
 const serviceAccount = {
   "type": "service_account",
   "project_id": "bikeshopsample-ldxnnm",
@@ -22,7 +22,7 @@ const serviceAccount = {
   "token_uri": "https://oauth2.googleapis.com/token",
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/bike-shop-calendar%40bikeshopsample-ldxnnm.iam.gserviceaccount.com"
-}; // Starts with {"type": "service_account",...
+}; 
 
 // Set up Google Calendar Service account credentials
 const serviceAccountAuth = new google.auth.JWT({
@@ -49,7 +49,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
   }
 
   function makeAppointment (agent) {
-    // Calculate appointment start and end datetimes (end = +1hr from start)
+    // Calculate appointment start and end datetimes (end = +1hr from start) converting dialogflow 
     const dateTimeStart = new Date(Date.parse(agent.parameters.date.split('T')[0] + 'T' + agent.parameters.time.split('T')[1].split('+')[0] + timezoneOffset));
     const dateTimeEnd = new Date(new Date(dateTimeStart).setHours(dateTimeStart.getHours() + 1));
     const persons = Number(agent.parameters.number);
@@ -60,7 +60,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
     );
     // Check the availibility of the time, and make an appointment if there is time on the calendar
     return createCalendarEvent(dateTimeStart, dateTimeEnd, persons, name).then(() => {
-      agent.add(`Ok, let me see if we can fit you in. ${appointmentTimeString} is fine! We book your table for ${persons}.`);
+      agent.add(`Ok, let me see if we can fit you in. ${appointmentTimeString} is fine! We book your table for ${persons} persons.`);
     }).catch(() => {
       agent.add(`I'm sorry, there are no tables available for ${appointmentTimeString}.`);
     });
@@ -84,7 +84,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
             resource: {summary: `Table Appointment for ${persons} persons`,
               start: {dateTime: dateTimeStart},
               end: {dateTime: dateTimeEnd},
-              description: `Mrs./Mr. ${name} has reserved a table for ${persons}.`
+              description: `Mrs./Mr. ${name} has reserved a table for ${persons} persons.`
             }
           }, (err, event) => {
             err ? reject(err) : resolve(event);
