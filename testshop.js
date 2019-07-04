@@ -42,14 +42,14 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
 
   function hours (agent) {
     if (currentlyOpen()) {
-      agent.add(`We're open now! We close at 8pm today.`);
+      agent.add(`We're open now! We close at 11pm today.`);
     } else {
-      agent.add(`We're currently closed, but we open every weekday at 9am!`);
+      agent.add(`We're currently closed, but we open every weekday at 10am!`);
     }
   }
 
   function makeAppointment (agent) {
-    // Calculate appointment start and end datetimes (end = +1hr from start) converting dialogflow 
+    // Calculate appointment start and end datetimes (end = +1hr from start) converting dialogflow date and time entity
     const dateTimeStart = new Date(Date.parse(agent.parameters.date.split('T')[0] + 'T' + agent.parameters.time.split('T')[1].split('+')[0] + timezoneOffset));
     const dateTimeEnd = new Date(new Date(dateTimeStart).setHours(dateTimeStart.getHours() + 1));
     const persons = Number(agent.parameters.number);
@@ -81,7 +81,7 @@ exports.dialogflowFirebaseFulfillment = functions.https.onRequest((request, resp
           // Create event for the requested time period
           calendar.events.insert({ auth: serviceAccountAuth,
             calendarId: calendarId,
-            resource: {summary: `Table Appointment for ${persons} persons`,
+            resource: {summary: `Table Booking for ${persons} persons`,
               start: {dateTime: dateTimeStart},
               end: {dateTime: dateTimeEnd},
               description: `Mrs./Mr. ${name} has reserved a table for ${persons} persons.`
